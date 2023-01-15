@@ -1,0 +1,167 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  annotations:
+    app.openshift.io/vcs-uri: 'https://github.com/dzianis-shkindzerau/opbeans-java.git'
+  name: opbeans-java
+  labels:
+    app: opbeans-java
+    app.kubernetes.io/component: opbeans-java
+    app.kubernetes.io/instance: opbeans-java
+    app.kubernetes.io/name: opbeans-java
+    app.kubernetes.io/part-of: opbeans-java-app
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'opbeans-java:latest'
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/dzianis-shkindzerau/opbeans-java.git'
+    contextDir: /
+  triggers:
+    - type: Generic
+      generic:
+        secretReference:
+          name: opbeans-java-generic-webhook-secret
+    - type: GitHub
+      github:
+        secretReference:
+          name: opbeans-java-github-webhook-secret
+    - type: ConfigChange
+  runPolicy: Serial
+status:
+  lastVersion: 2
+
+---
+
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: opbeans-java
+  labels:
+    app: opbeans-java
+    app.kubernetes.io/component: opbeans-java
+    app.kubernetes.io/instance: opbeans-java
+    app.kubernetes.io/name: opbeans-java
+    app.kubernetes.io/part-of: opbeans-java-app
+spec:
+  lookupPolicy:
+    local: false
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  annotations:
+    alpha.image.policy.openshift.io/resolve-names: '*'
+    app.openshift.io/route-disabled: 'false'
+  name: opbeans-java
+  labels:
+    app: opbeans-java
+    app.kubernetes.io/component: opbeans-java
+    app.kubernetes.io/instance: opbeans-java
+    app.kubernetes.io/name: opbeans-java
+    app.kubernetes.io/part-of: opbeans-java-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opbeans-java
+  template:
+    metadata:
+      labels:
+        app: opbeans-java
+        deployment: opbeans-java
+    spec:
+      containers:
+        - name: opbeans-java
+          image: opbeans-java
+          env:
+            - name: APM_AGENT_TYPE
+              value: elasticapm
+            - name: ELASTIC_APM_SERVICE_NAME
+              value: opbeans
+            - name: ELASTIC_APM_SERVICE_VERSION
+              value: v0.0.1-tp
+            - name: ELASTIC_APM_SERVER_URL
+              value: 'https://localhost:8200'
+            - name: ELASTIC_APM_ENVIRONMENT
+              value: opbeans-rnd
+            - name: ELASTIC_APM_GLOBAL_LABELS
+              value: 'project=epm-paas,service_type=app'
+          resources:
+            limits:
+              cpu: '1'
+              memory: 2Gi
+            requests:
+              cpu: 50m
+              memory: 1Gi
+          imagePullPolicy: Always
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: opbeans-java
+  labels:
+    app: opbeans-java
+    app.kubernetes.io/component: opbeans-java
+    app.kubernetes.io/instance: opbeans-java
+    app.kubernetes.io/name: opbeans-java
+    app.kubernetes.io/part-of: opbeans-java-app
+spec:
+  ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+  selector:
+    app: opbeans-java
+    deployment: opbeans-java
+
+---
+
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: opbeans-java
+  labels:
+    app: opbeans-java
+    app.kubernetes.io/component: opbeans-java
+    app.kubernetes.io/instance: opbeans-java
+    app.kubernetes.io/name: opbeans-java
+    app.kubernetes.io/part-of: opbeans-java-app
+  annotations:
+    openshift.io/host.generated: 'true'
+spec:
+  host: >-
+    opbeans-java
+  to:
+    kind: Service
+    name: opbeans-java
+    weight: 100
+  port:
+    targetPort: 8080-tcp
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
