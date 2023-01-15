@@ -60,6 +60,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   annotations:
+    app.openshift.io/vcs-uri: 'https://github.com/dzianis-shkindzerau/opbeans-java.git'
     alpha.image.policy.openshift.io/resolve-names: '*'
     app.openshift.io/route-disabled: 'false'
   name: opbeans-java
