@@ -35,8 +35,6 @@ spec:
           name: opbeans-java-github-webhook-secret
     - type: ConfigChange
   runPolicy: Serial
-status:
-  lastVersion: 2
 
 ---
 
@@ -96,7 +94,7 @@ spec:
             - name: ELASTIC_APM_ENVIRONMENT
               value: opbeans-rnd
             - name: ELASTIC_APM_GLOBAL_LABELS
-              value: 'project=epm-paas,service_type=app'
+              value: 'project=epm-paas-snek,service_type=app'
           resources:
             limits:
               cpu: '1'
